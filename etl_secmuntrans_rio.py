@@ -101,7 +101,7 @@ def pipeline_ocorrencias_por_pop():
         set_of_pops.add(event['pop_id'])
     logger = get_run_logger()
     logger.info(f"Events with the following POPs were reported: {set_of_pops}") 
-    # Make API call of method that checks for ocorrências fechadas
+    # Make API call of method that checks for ocorrências fechadas (ocorrências com início e fim na data de hoje)
     next_request_datetime = api_datetime_ocorrencias_abertas - datetime.timedelta(days = 0)
     datetime_string_for_ocorrencias_fechadas_request = next_request_datetime.astimezone(timezone_brasilia).strftime('%Y-%m-%d 00:00:00.0')
     api_datetime_ocorrencias_fechadas, api_ocorrencias_fechadas_response = call_dadosrio_api('ocorrencias','?inicio='+datetime_string_for_ocorrencias_fechadas_request)
@@ -111,10 +111,9 @@ def pipeline_ocorrencias_por_pop():
     # Make API call of method that returns all POPs and extract the POPs dictionary
     api_datetime_pops, api_pops_response = call_dadosrio_api('pops')
     pops_dictionary = transform_json_to_pops_dictionary(api_pops_response)
-    #new_pops_dict = {key: val for key in set_of_pops if (val := pops_dictionary.get(key))}
     set_of_pops_de_responsabilidade_do_orgao_de_interesse = set()
     for pop in set_of_pops:
-        # Check if the POP is of responsability of CET-RIO
+        # Check if the POP is of responsability of CET-RIO, if this part fails, log the error but proceed anyway.
         try:
             api_datetime_pop_orgaos_responsaveis, api_pop_orgaos_responsaveis_response = call_dadosrio_api('procedimento_operacional_padrao_orgaos_responsaveis', f'?popId={pop}')
             activities_list = transform_json_to_activities_list(api_pop_orgaos_responsaveis_response, pops_dictionary[pop])
@@ -123,10 +122,13 @@ def pipeline_ocorrencias_por_pop():
                     set_of_pops_de_responsabilidade_do_orgao_de_interesse.add(pop)
                     break
         except BaseException as error:
+            # We log the error and try again with the next POP
             logger.error(f"An exception ocurred while checking responsability of POPs: {error}")
             logger.warning("Skipped pop_id: {pop}")
     logger.info(f"Events with the following POPs were reported: {set_of_pops}") 
     logger.info(f"The following POPs are relevant to CET-RIO: {set_of_pops_de_responsabilidade_do_orgao_de_interesse}")
+    # At this point we extracted and transformed the data, the final transformation step is to add up the number of ocorrências por POP e status
+    # defaultdict(int) is a handy trick here
     ocorrencias_por_categoria = defaultdict(int)
     for event in list_of_ocorrencias_abertas:
         logger.info(f"Event: {pops_dictionary[event['pop_id']]}, {event['status']}")
@@ -137,12 +139,17 @@ def pipeline_ocorrencias_por_pop():
         ocorrencias_por_categoria[identifier_string] += 1
         logger.info(f"Event: {pops_dictionary[event['pop_id']]}, {event['status']}")
     logger.info(f"Ocorrências por categoria: {ocorrencias_por_categoria}")
+    # Format the data strings to appear in the table
     datetime_string_for_ocorrencias_abertas = api_datetime_ocorrencias_abertas.astimezone(timezone_brasilia).strftime('%Y-%m-%d %H:%M:%S')
     datetime_string_for_ocorrencias_fechadas = api_datetime_ocorrencias_fechadas.astimezone(timezone_brasilia).strftime('%Y-%m-%d %H:%M:%S')
+    # Finally, write the .csv file with the prepared data
+    # A SQL-database would seem to be a better choice, either as final result or as intermediate step. It is also easier to integrate the SQL data flow within the prefect data orchestration scheme
     with open('ocorrencias_por_categoria.csv', 'a') as f:
         csv_writer = csv.writer(f)
+        # If file is empty, write header
         if f.tell() == 0:
             csv_writer.writerow(['datetime', 'tipo_ocorrencia', 'status_ocorrencia', 'quantidade_ocorrencia'])
+        # Write the data 
         for key in ocorrencias_por_categoria:
             composing_parts = re.split('_-_',key)
             status = composing_parts[-1]
@@ -152,7 +159,6 @@ def pipeline_ocorrencias_por_pop():
                 datetime_string_for_entry = datetime_string_for_ocorrencias_abertas
             else:
                 datetime_string_for_entry = datetime_string_for_ocorrencias_fechadas
-            # open the file in the write mode
             csv_writer.writerow([datetime_string_for_entry, titulo, status, ocorrencias_por_categoria[key]])
             logger.info(f"{datetime_string_for_entry}, {titulo}, {status}, {ocorrencias_por_categoria[key]}") 
 

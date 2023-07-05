@@ -5,6 +5,7 @@
 !*/
 
 # Do not ignore Python scripts
+!README.md
 !*.py
 !.gitattributes
 !.gitignore
