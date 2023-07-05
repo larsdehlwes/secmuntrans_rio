@@ -5,6 +5,7 @@
 !*/
 
 # Do not ignore Python scripts
+!diagram.pdf
 !README.md
 !*.py
 !.gitattributes
