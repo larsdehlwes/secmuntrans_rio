@@ -24,7 +24,6 @@ def call_dadosrio_api(method: str, parameters: str = ''):
     response_json_dict = response.json()
     logger = get_run_logger()
     logger.debug(f"Response header: {response.headers}")
-    #api_datetime = datetime.datetime.strptime(response.headers['Date'], '%a, %d %b %Y %H:%M:%S %Z')
     api_datetime = parsedate_to_datetime(response.headers['Date'])
     logger.debug(f"Response datetime: {api_datetime.strftime('%Y-%m-%d %H:%M:%S %Z')}")
     logger.debug(f"JSON Response: {response_json_dict}")
