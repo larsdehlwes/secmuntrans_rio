@@ -43,7 +43,7 @@
     ```
     We recommend to run orion independently of the current terminal session, in this case, use:
     ```
-    nohup prefect agent start -q default > nohup.out &2>1 &
+    nohup prefect orion start > orion.out 2>&1 &
     ```
 
 6. Start agent responsible for the default queue:
@@ -52,7 +52,7 @@
     ```
     If you wish to make the agent persist beyond the current terminal session, run instead:
     ```
-    nohup prefect agent start -q default > nohup.out &2>1 &
+    nohup prefect agent start -q default > agent-default.out 2>&1 &
     ```
 
 7. Check the schedule of flows with the command:
