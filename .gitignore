@@ -1,0 +1,10 @@
+# Ignore everything by default
+*
+
+# Do not ignore directories (so that we can look inside them, for other files)
+!*/
+
+# Do not ignore Python scripts
+!*.py
+!.gitattributes
+!.gitignore
