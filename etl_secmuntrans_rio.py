@@ -17,7 +17,7 @@ headers = {"Accept": "application/json",
            "Accept-Language": "pt-BR,pt;q=0.5"}
 
 # Make API call of a given method with given parameters, and accept JSON as response
-@task(name="Get data from dados.rio API", retries=4, retry_delay_seconds=2)
+@task(name="Get data from dados.rio API", retries=20, retry_delay_seconds=2)
 def call_dadosrio_api(method: str, parameters: str = ''):
     response = requests.get(base_url+'/'+method+'/'+parameters, headers=headers)
     response.raise_for_status()
